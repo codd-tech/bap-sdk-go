@@ -11,12 +11,6 @@ import (
 
 const defaultAddr = "api.production.bap.codd.io:8080"
 
-// BAPConfig represents the configuration for the BAP client.
-type BAPConfig struct {
-	APIKey string // APIKey is the Advertising Platform API key.
-	Addr   string // Addr is the address of the BAP API. Defaults to "api.production.bap.codd.io:8080".
-}
-
 // BAPClient is an interface that defines the methods for a BAP client.
 type BAPClient interface {
 	// HandleUpdate sends the update data to the BAP API.
@@ -30,17 +24,13 @@ type bap struct {
 	socket *net.UDPConn
 }
 
-// Creates a new BAP config.
-func NewBAPConfig(apiKey string) (*BAPConfig, error) {
+// Creates a new instance of the BAP client.
+func NewBAPClient(apiKey string) (BAPClient, error) {
 	if apiKey == "" {
 		return nil, errors.New("AdvertisingPlatform API key is empty")
 	}
-	return &BAPConfig{APIKey: apiKey, Addr: defaultAddr}, nil
-}
 
-// Creates a new instance of the BAP client.
-func NewBAPClient(config *BAPConfig) (BAPClient, error) {
-	addr, err := net.ResolveUDPAddr("udp", config.Addr)
+	addr, err := net.ResolveUDPAddr("udp", defaultAddr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve UDP address: %w", err)
 	}
@@ -51,7 +41,7 @@ func NewBAPClient(config *BAPConfig) (BAPClient, error) {
 		return nil, fmt.Errorf("failed to dial UDP: %w", err)
 	}
 
-	return &bap{apiKey: config.APIKey, socket: conn}, nil
+	return &bap{apiKey: apiKey, socket: conn}, nil
 }
 
 // HandleUpdate handles the update received from the BAP API.

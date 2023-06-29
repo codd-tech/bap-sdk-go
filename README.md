@@ -28,13 +28,7 @@ To create a new instance of the BAP client, use the `NewBAPClient` function:
 
 ```golang
 // Setup BAP
-config, err := bapSdk.NewBAPConfig("your-api-key")
-if err != nil {
-	// handle error
-    log.Panic(err)
-}
-
-bap, err := bapSdk.NewBAPClient(config)
+bap, err := bapSdk.NewBAPClient("your-api-key")
 if err != nil {
 	// handle error
     log.Panic(err)
