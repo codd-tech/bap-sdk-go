@@ -30,15 +30,16 @@ type bap struct {
 	socket *net.UDPConn
 }
 
-// Creates a new instance of the BAP client.
-func NewBotAdvertisingPlatform(config BAPConfig) (BAPClient, error) {
-	if config.APIKey == "" {
+// Creates a new BAP config.
+func NewBAPConfig(apiKey string) (*BAPConfig, error) {
+	if apiKey == "" {
 		return nil, errors.New("AdvertisingPlatform API key is empty")
 	}
-	if config.Addr == "" {
-		config.Addr = defaultAddr
-	}
+	return &BAPConfig{APIKey: apiKey, Addr: defaultAddr}, nil
+}
 
+// Creates a new instance of the BAP client.
+func NewBAPClient(config *BAPConfig) (BAPClient, error) {
 	addr, err := net.ResolveUDPAddr("udp", config.Addr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve UDP address: %w", err)

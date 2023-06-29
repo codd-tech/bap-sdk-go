@@ -16,7 +16,7 @@ go get github.com/codd-tech/bap-sdk-go
 
 ### Importing the Package
 
-Import the `bap` package into your Go code:
+Import the `bap-sdk-go` package into your Go code:
 
 ```golang
 import bapSdk "github.com/codd-tech/bap-sdk-go"
@@ -24,23 +24,25 @@ import bapSdk "github.com/codd-tech/bap-sdk-go"
 
 ### Creating a BAP Client
 
-To create a new instance of the BAP client, use the `NewBotAdvertisingPlatform` function:
+To create a new instance of the BAP client, use the `NewBAPClient` function:
 
 ```golang
-config := bap.BAPConfig{
-	APIKey: "your-api-key",
-	Addr:   "api.production.bap.codd.io:8080", // optional, defaults to "api.production.bap.codd.io:8080"
-}
-
-bap, err := bapSdk.NewBotAdvertisingPlatform(config)
+// Setup BAP
+config, err := bapSdk.NewBAPConfig("your-api-key")
 if err != nil {
 	// handle error
+    log.Panic(err)
+}
+
+bap, err := bapSdk.NewBAPClient(config)
+if err != nil {
+	// handle error
+    log.Panic(err)
 }
 defer bap.Close()
 ```
 
 **The `APIKey` field is mandatory and represents your Advertising Platform API key.** <br>
-The `Addr` field is optional and specifies the address of the BAP API. If not provided, it defaults to "api.production.bap.codd.io:8080".
 
 ### Handling Updates (Example on Telegram Bot API)
 
@@ -53,9 +55,8 @@ Use the `HandleUpdate` method of the BAP client to send update data to the BAP A
 bot, err := tgBotApi.NewBotAPI(TELEGRAM_TOKEN)
 if err != nil {
 	// handle error
+    panic(err)
 }
-
-bot.Debug = true
 
 u := tgBotApi.NewUpdate(0)
 u.Timeout = 60

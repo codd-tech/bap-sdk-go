@@ -1,3 +1,3 @@
 module github.com/codd-tech/bap-sdk-go
 
-go 1.19
+go 1.17
