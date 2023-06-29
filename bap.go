@@ -21,7 +21,7 @@ type BAPConfig struct {
 type BAPClient interface {
 	// HandleUpdate sends the update data to the BAP API.
 	HandleUpdate(ctx context.Context, update interface{}) error
-	// Close closes the BAP UDP client connection.
+	// Close closes the BAP UDP connection.
 	Close() error
 }
 
@@ -80,7 +80,7 @@ func (b *bap) HandleUpdate(ctx context.Context, update interface{}) error {
 	return nil
 }
 
-// Close closes the BAP client connection.
+// Close closes the BAP UDP connection.
 func (b *bap) Close() error {
 	return b.socket.Close()
 }

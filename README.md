@@ -19,7 +19,7 @@ go get github.com/codd-tech/bap-sdk-go
 Import the `bap` package into your Go code:
 
 ```golang
-import "github.com/your/package/import/path/bap"
+import bapSdk "github.com/codd-tech/bap-sdk-go"
 ```
 
 ### Creating a BAP Client
@@ -32,10 +32,11 @@ config := bap.BAPConfig{
 	Addr:   "api.production.bap.codd.io:8080", // optional, defaults to "api.production.bap.codd.io:8080"
 }
 
-client, err := bap.NewBotAdvertisingPlatform(config)
+bap, err := bapSdk.NewBotAdvertisingPlatform(config)
 if err != nil {
 	// handle error
 }
+defer bap.Close()
 ```
 
 **The `APIKey` field is mandatory and represents your Advertising Platform API key.** <br>
@@ -51,7 +52,7 @@ Use the `HandleUpdate` method of the BAP client to send update data to the BAP A
 // -- some code for setup telegram bot --
 bot, err := tgBotApi.NewBotAPI(TELEGRAM_TOKEN)
 if err != nil {
-    log.Panic(err)
+	// handle error
 }
 
 bot.Debug = true
@@ -66,6 +67,7 @@ for update := range updates {
     // Handle update
     err = bap.HandleUpdate(context.Background(), update)
     if err != nil {
+	    // handle error
         log.Print(err)
     }
 
