@@ -61,10 +61,11 @@ func (b *bap) HandleUpdate(ctx context.Context, update interface{}) error {
 		case <-ctx.Done():
 			return
 		default:
-			_, err := b.socket.Write(jsonData)
+			n, err := b.socket.Write(jsonData)
 			if err != nil {
 				log.Printf("Failed to write UDP data: %v\n", err)
 			}
+			log.Printf("Wrote %d bytes\n", n)
 		}
 	}()
 
