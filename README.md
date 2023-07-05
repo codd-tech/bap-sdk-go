@@ -30,8 +30,7 @@ To create a new instance of the BAP client, use the `NewBAPClient` function:
 // Setup BAP
 bap, err := bapSdk.NewBAPClient("your-api-key")
 if err != nil {
-	// handle error
-    log.Panic(err)
+    log.Fatal(err)
 }
 defer bap.Close()
 ```
@@ -67,7 +66,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-    // Bap middleware
+	// Bap middleware
 	b.Use(middleware.BapMiddleware("your-api-key"))
 
 	b.Handle("/hello", func(c tele.Context) error {
