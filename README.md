@@ -67,7 +67,7 @@ func main() {
 	}
 
 	// Bap middleware
-	b.Use(middleware.BapMiddleware("your-api-key"))
+	b.Use(middleware.TelebotBapMiddleware("your-api-key"))
 
 	b.Handle("/hello", func(c tele.Context) error {
 		return c.Send("Hello Moderator!")

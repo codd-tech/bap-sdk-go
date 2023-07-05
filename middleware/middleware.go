@@ -8,7 +8,7 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-func BapMiddleware(token string) tele.MiddlewareFunc {
+func TelebotBapMiddleware(token string) tele.MiddlewareFunc {
 	bap, err := bap.NewBAPClient(token)
 	if err != nil {
 		log.Fatal(err)
