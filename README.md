@@ -37,7 +37,26 @@ defer bap.Close()
 
 **The `APIKey` field is mandatory and represents your Advertising Platform API key.** <br>
 
-### Handling Updates (Example on Telebot)
+### Handling Updates
+
+Use the `HandleUpdate` method of the BAP client to send update data to the BAP API:
+
+```golang
+needHandle, err := bap.HandleUpdate(context.Background(), update)
+if err != nil {
+	log.Print(err)
+}
+```
+
+#### Interrupting control flow
+
+At times, BAP may introduce telegram updates within its advertisement flow. To maintain the logical consistency of your bot, it is necessary to ignore such updates.
+
+The `bap.HandleUpdate` method returns a boolean value indicating whether you should proceed with handling the request or skip it as an internal BAP request.
+
+When the method returns `false`, it signifies that the current request should not be processed by your bot.
+
+### Handling Updates Using Middleware (Example on Telebot)
 
 [telebot](https://github.com/tucnak/telebot/tree/v3)
 
@@ -75,66 +94,6 @@ func main() {
 
 	b.Start()
 }
-```
-
-### Handling Updates (Example on Telegram Bot API)
-
-[telegram-bot-api](https://github.com/go-telegram-bot-api/telegram-bot-api)
-
-Use the `HandleUpdate` method of the BAP client to send update data to the BAP API:
-
-```golang
-package main
-
-import (
-	"context"
-	"log"
-
-	tgBotApi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-
-	bapSdk "github.com/codd-tech/bap-sdk-go"
-)
-
-func main() {
-	log.Println("Starting bot")
-
-	bot, err := tgBotApi.NewBotAPI("TELEGRAM_TOKEN")
-	if err != nil {
-		log.Fatal(err)
-	}
-	bot.Debug = true
-	log.Printf("Authorized on account %s", bot.Self.UserName)
-
-	// Setup BAP
-	bap, err := bapSdk.NewBAPClient("your-api-key")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer bap.Close()
-
-	u := tgBotApi.NewUpdate(0)
-	u.Timeout = 60
-
-	updates := bot.GetUpdatesChan(u)
-
-	for update := range updates {
-		// Handle update
-		err = bap.HandleUpdate(context.Background(), update)
-		if err != nil {
-			log.Print(err)
-		}
-
-		if update.Message != nil {
-			log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
-
-			msg := tgBotApi.NewMessage(update.Message.Chat.ID, update.Message.Text)
-			msg.ReplyToMessageID = update.Message.MessageID
-
-			bot.Send(msg)
-		}
-	}
-}
-
 ```
 
 ## About

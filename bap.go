@@ -7,14 +7,21 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 )
 
-const defaultAddr = "api.production.bap.codd.io:8080"
+const (
+	defaultAddr = "api.production.bap.codd.io:8080"
+	ApiVersion  = 2
+	BapPrefix   = "/__bap"
+)
 
 // BAPClient is an interface that defines the methods for a BAP client.
 type BAPClient interface {
 	// HandleUpdate sends the update data to the BAP API.
-	HandleUpdate(ctx context.Context, update interface{}) error
+	//
+	// Return false, if you do not need to handle this update (because it is a bap command).
+	HandleUpdate(ctx context.Context, update interface{}) (bool, error)
 	// Close closes the BAP UDP connection.
 	Close() error
 }
@@ -22,6 +29,14 @@ type BAPClient interface {
 type bap struct {
 	apiKey string
 	socket *net.UDPConn
+}
+
+type updateStub struct {
+	Callback *callback `json:"callback_query,omitempty"`
+}
+
+type callback struct {
+	Data string `json:"data"`
 }
 
 // Creates a new instance of the BAP client.
@@ -45,15 +60,18 @@ func NewBAPClient(apiKey string) (BAPClient, error) {
 }
 
 // HandleUpdate handles the update received from the BAP API.
-func (b *bap) HandleUpdate(ctx context.Context, update interface{}) error {
+//
+// Return false, if you do not need to handle this update (because it is a bap command).
+func (b *bap) HandleUpdate(ctx context.Context, update interface{}) (bool, error) {
 	data := map[string]interface{}{
 		"api_key": b.apiKey,
+		"version": ApiVersion,
 		"update":  update,
 	}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return fmt.Errorf("failed to marshal JSON data: %w", err)
+		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
 	}
 
 	go func() {
@@ -69,7 +87,27 @@ func (b *bap) HandleUpdate(ctx context.Context, update interface{}) error {
 		}
 	}()
 
-	return nil
+	// Serialize the update.
+	updateBytes, err := json.Marshal(update)
+	if err != nil {
+		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
+	}
+
+	updateObj := &updateStub{}
+
+	// Deserialize the update.
+	err = json.Unmarshal(updateBytes, updateObj)
+	if err != nil {
+		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
+	}
+
+	// Check if the update is a bap command.
+	// if yes, do not need to handle this update
+	if updateObj.Callback != nil && strings.HasPrefix(updateObj.Callback.Data, BapPrefix) {
+		return false, nil
+	}
+
+	return true, nil
 }
 
 // Close closes the BAP UDP connection.

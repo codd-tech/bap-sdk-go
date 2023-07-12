@@ -16,11 +16,15 @@ func TelebotBapMiddleware(token string) tele.MiddlewareFunc {
 
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
-			err = bap.HandleUpdate(context.Background(), c.Update())
+			update, err := bap.HandleUpdate(context.Background(), c.Update())
 			if err != nil {
 				return err
 			}
-			return next(c)
+			if update {
+				return next(c)
+			} else {
+				return nil
+			}
 		}
 	}
 }
