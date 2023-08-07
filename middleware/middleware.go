@@ -9,14 +9,14 @@ import (
 )
 
 func TelebotBapMiddleware(token string) tele.MiddlewareFunc {
-	bap, err := bap.NewBAPClient(token)
+	client, err := bap.NewBAPClient(token)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	return func(next tele.HandlerFunc) tele.HandlerFunc {
 		return func(c tele.Context) error {
-			update, err := bap.HandleUpdate(context.Background(), c.Update())
+			update, err := client.HandleUpdate(context.Background(), c.Update())
 			if err != nil {
 				return err
 			}

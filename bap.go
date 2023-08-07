@@ -8,16 +8,18 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 const (
-	defaultAddr = "api.production.bap.codd.io:8080"
-	ApiVersion  = 2
-	BapPrefix   = "/__bap"
+	defaultAddr             = "api.production.bap.codd.io:8080"
+	APIVersion              = 2
+	CallbackQueryDataPrefix = "/__bap"
 )
 
-// BAPClient is an interface that defines the methods for a BAP client.
-type BAPClient interface {
+// Client is an interface that defines the methods for a BAP client.
+type Client interface {
 	// HandleUpdate sends the update data to the BAP API.
 	//
 	// Return false, if you do not need to handle this update (because it is a bap command).
@@ -31,16 +33,26 @@ type bap struct {
 	socket *net.UDPConn
 }
 
-type updateStub struct {
-	Callback *callback `json:"callback_query,omitempty"`
+// Validate the update received Update.
+func Validate(update interface{}) (*tgbotapi.Update, error) {
+	// Convert update to JSON bytes
+	updateJSON, err := json.Marshal(update)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal update to JSON: %w", err)
+	}
+
+	// Unmarshal JSON bytes back to Update struct
+	var updatedUpdate *tgbotapi.Update
+	err = json.Unmarshal(updateJSON, &updatedUpdate)
+	if err != nil {
+		return nil, fmt.Errorf("failed to unmarshal JSON to Update struct: %w", err)
+	}
+
+	return updatedUpdate, nil
 }
 
-type callback struct {
-	Data string `json:"data"`
-}
-
-// Creates a new instance of the BAP client.
-func NewBAPClient(apiKey string) (BAPClient, error) {
+// NewBAPClient Creates a new instance of the BAP client.
+func NewBAPClient(apiKey string) (Client, error) {
 	if apiKey == "" {
 		return nil, errors.New("AdvertisingPlatform API key is empty")
 	}
@@ -63,12 +75,18 @@ func NewBAPClient(apiKey string) (BAPClient, error) {
 //
 // Return false, if you do not need to handle this update (because it is a bap command).
 func (b *bap) HandleUpdate(ctx context.Context, update interface{}) (bool, error) {
-	data := map[string]interface{}{
-		"api_key": b.apiKey,
-		"version": ApiVersion,
-		"update":  update,
+	updateObj, err := Validate(update)
+	if err != nil {
+		return true, fmt.Errorf("failed to validate update: %w", err)
 	}
 
+	data := map[string]interface{}{
+		"api_key": b.apiKey,
+		"version": APIVersion,
+		"update":  updateObj,
+	}
+
+	// Marshal data to JSON
 	jsonData, err := json.Marshal(data)
 	if err != nil {
 		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
@@ -87,23 +105,9 @@ func (b *bap) HandleUpdate(ctx context.Context, update interface{}) (bool, error
 		}
 	}()
 
-	// Serialize the update.
-	updateBytes, err := json.Marshal(update)
-	if err != nil {
-		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
-	}
-
-	updateObj := &updateStub{}
-
-	// Deserialize the update.
-	err = json.Unmarshal(updateBytes, updateObj)
-	if err != nil {
-		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
-	}
-
 	// Check if the update is a bap command.
 	// if yes, do not need to handle this update
-	if updateObj.Callback != nil && strings.HasPrefix(updateObj.Callback.Data, BapPrefix) {
+	if updateObj.CallbackQuery != nil && strings.HasPrefix(updateObj.CallbackQuery.Data, CallbackQueryDataPrefix) {
 		return false, nil
 	}
 
