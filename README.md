@@ -19,7 +19,7 @@ go get github.com/codd-tech/bap-sdk-go
 Import the `bap-sdk-go` package into your Go code:
 
 ```golang
-import bapSdk "github.com/codd-tech/bap-sdk-go"
+import "github.com/codd-tech/bap-sdk-go"
 ```
 
 ### Creating a BAP Client
@@ -28,11 +28,11 @@ To create a new instance of the BAP client, use the `NewBAPClient` function:
 
 ```golang
 // Setup BAP
-bap, err := bapSdk.NewBAPClient("your-api-key")
+bapClient, err := bap.NewBAPClient("your-api-key")
 if err != nil {
     log.Fatal(err)
 }
-defer bap.Close()
+defer bapClient.Close()
 ```
 
 **The `APIKey` field is mandatory and represents your Advertising Platform API key.** <br>
@@ -42,7 +42,16 @@ defer bap.Close()
 Use the `HandleUpdate` method of the BAP client to send update data to the BAP API:
 
 ```golang
-needHandle, err := bap.HandleUpdate(context.Background(), update)
+needHandle, err := bapClient.HandleUpdate(context.Background(), update)
+if err != nil {
+	log.Print(err)
+}
+```
+
+If your advertisement mode is set to manual you can mark ad placement in your code by calling:
+
+```golang
+err = bapClient.SendAdvertisement(context.Background(), update)
 if err != nil {
 	log.Print(err)
 }

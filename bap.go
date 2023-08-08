@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"log"
 	"net"
 	"strings"
 
@@ -14,7 +13,7 @@ import (
 
 const (
 	defaultAddr             = "api.production.bap.codd.io:8080"
-	APIVersion              = 2
+	APIVersion              = 3
 	CallbackQueryDataPrefix = "/__bap"
 )
 
@@ -24,6 +23,8 @@ type Client interface {
 	//
 	// Return false, if you do not need to handle this update (because it is a bap command).
 	HandleUpdate(ctx context.Context, update interface{}) (bool, error)
+	// SendAdvertisement send advertisement to the BAP API, allows you to immediately display ads
+	SendAdvertisement(ctx context.Context, update interface{}) error
 	// Close closes the BAP UDP connection.
 	Close() error
 }
@@ -71,6 +72,27 @@ func NewBAPClient(apiKey string) (Client, error) {
 	return &bap{apiKey: apiKey, socket: conn}, nil
 }
 
+func (b *bap) sendToBAP(update *tgbotapi.Update, method string) error {
+	data := map[string]interface{}{
+		"api_key": b.apiKey,
+		"version": APIVersion,
+		"update":  update,
+		"method":  method,
+	}
+
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("failed to marshal JSON data: %w", err)
+	}
+
+	_, err = b.socket.Write(jsonData)
+	if err != nil {
+		return fmt.Errorf("Failed to write UDP data: %v\n", err)
+	}
+
+	return nil
+}
+
 // HandleUpdate handles the update received from the BAP API.
 //
 // Return false, if you do not need to handle this update (because it is a bap command).
@@ -80,38 +102,33 @@ func (b *bap) HandleUpdate(ctx context.Context, update interface{}) (bool, error
 		return true, fmt.Errorf("failed to validate update: %w", err)
 	}
 
-	data := map[string]interface{}{
-		"api_key": b.apiKey,
-		"version": APIVersion,
-		"update":  updateObj,
+	if err := b.sendToBAP(updateObj, "activity"); err != nil {
+		return true, fmt.Errorf("failed to send update to BAP: %w", err)
 	}
 
-	// Marshal data to JSON
-	jsonData, err := json.Marshal(data)
+	return !b.isBAPUpdate(updateObj), nil
+}
+
+// SendAdvertisement send advertisement to the BAP API, allows you to immediately display ads
+func (b *bap) SendAdvertisement(ctx context.Context, update interface{}) error {
+	updateObj, err := Validate(update)
 	if err != nil {
-		return true, fmt.Errorf("failed to marshal JSON data: %w", err)
+		return fmt.Errorf("failed to validate update: %w", err)
 	}
 
-	go func() {
-		select {
-		case <-ctx.Done():
-			return
-		default:
-			n, err := b.socket.Write(jsonData)
-			if err != nil {
-				log.Printf("Failed to write UDP data: %v\n", err)
-			}
-			log.Printf("Wrote %d bytes\n", n)
-		}
-	}()
-
-	// Check if the update is a bap command.
-	// if yes, do not need to handle this update
-	if updateObj.CallbackQuery != nil && strings.HasPrefix(updateObj.CallbackQuery.Data, CallbackQueryDataPrefix) {
-		return false, nil
+	if b.isBAPUpdate(updateObj) {
+		return nil
 	}
 
-	return true, nil
+	if err := b.sendToBAP(updateObj, "advertisement"); err != nil {
+		return fmt.Errorf("failed to send update to BAP: %w", err)
+	}
+
+	return nil
+}
+
+func (b *bap) isBAPUpdate(update *tgbotapi.Update) bool {
+	return update.CallbackQuery != nil && strings.HasPrefix(update.CallbackQuery.Data, CallbackQueryDataPrefix)
 }
 
 // Close closes the BAP UDP connection.
